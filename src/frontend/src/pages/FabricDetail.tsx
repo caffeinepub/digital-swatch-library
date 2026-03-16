@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart2,
   Building2,
   CalendarDays,
@@ -208,6 +209,60 @@ export default function FabricDetail({
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
         Back to Library
       </button>
+
+      {/* ── Interconnection Workflow Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="bg-primary/10 border-2 border-primary/20 rounded-2xl px-5 py-4 mb-8"
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 mt-0.5">
+            <Layers className="w-5 h-5 text-foreground opacity-70" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+              How to build a complete fabric record
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Step 1 */}
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
+                  1
+                </span>
+                <span className="text-xs font-bold bg-primary/20 text-foreground rounded-md px-2 py-0.5 whitespace-nowrap">
+                  Fabric Details
+                </span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              {/* Step 2 */}
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-border text-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
+                  2
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  Colour Variants
+                </span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              {/* Step 3 */}
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-border text-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
+                  3
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  Garment Styles
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+              Open a colour variant below to add vendors and link garment
+              styles.
+            </p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* ── Fabric Hero ── */}
       <motion.div

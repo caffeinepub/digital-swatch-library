@@ -14,7 +14,10 @@ export function useActor() {
       if (!identity) {
         return await createActorWithConfig();
       }
-      return await createActorWithConfig({ agentOptions: { identity } });
+      const actor = await createActorWithConfig({
+        agentOptions: { identity },
+      });
+      return actor;
     },
     staleTime: Number.POSITIVE_INFINITY,
     enabled: true,

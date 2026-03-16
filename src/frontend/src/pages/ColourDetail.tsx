@@ -10,6 +10,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -17,9 +24,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ImageIcon,
+  Layers,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { View } from "../App";
 import type { ColourVariant, Fabric, Style, Vendor } from "../data/swatchData";
@@ -31,6 +46,24 @@ interface ColourDetailProps {
   setFabrics: (f: Fabric[]) => void;
   navigate: (v: View) => void;
 }
+
+const DEPARTMENT_OPTIONS = [
+  "Mens Wear",
+  "Boys",
+  "Girls",
+  "Indian Wear",
+  "Western Wear",
+  "Infants",
+];
+
+const ZONE_OPTIONS: Record<string, string[]> = {
+  "Mens Wear": ["Urban", "Classy", "Comfort", "Trendy"],
+  Boys: ["1-8 Years", "9-14 Years"],
+  Girls: ["1-8 Years", "9-14 Years"],
+  "Indian Wear": ["Classy", "Trendy", "Dressy"],
+  "Western Wear": ["Trendy", "Lounge"],
+  Infants: ["Infants Boys", "Infants Girls"],
+};
 
 function getContrastText(hex: string): string {
   const r = Number.parseInt(hex.slice(1, 3), 16);
@@ -56,6 +89,10 @@ export default function ColourDetail({
     moq: "",
     leadTime: "",
   });
+  const [vendorNameMode, setVendorNameMode] = useState<"select" | "custom">(
+    "select",
+  );
+  const [customVendorName, setCustomVendorName] = useState("");
 
   const [styleForm, setStyleForm] = useState({
     styleNumber: "",
@@ -63,7 +100,23 @@ export default function ColourDetail({
     season: "",
     department: "",
     zone: "",
+    imageUrl: "",
   });
+
+  const styleImageRef = useRef<HTMLInputElement>(null);
+
+  // Collect all unique vendor names across all fabrics
+  const allVendorNames = Array.from(
+    new Set(
+      fabrics.flatMap((f) =>
+        f.colours.flatMap((c) => c.vendors.map((v) => v.name)),
+      ),
+    ),
+  ).sort();
+
+  const zoneOptions = styleForm.department
+    ? (ZONE_OPTIONS[styleForm.department] ?? [])
+    : [];
 
   function updateColour(updated: Partial<ColourVariant>) {
     setFabrics(
@@ -81,24 +134,25 @@ export default function ColourDetail({
   }
 
   function handleAddVendor() {
-    if (!vendorForm.name || !vendorForm.pricePerMeter) {
+    const resolvedName =
+      vendorNameMode === "custom"
+        ? customVendorName.trim()
+        : vendorForm.name.trim();
+    if (!resolvedName || !vendorForm.pricePerMeter) {
       toast.error("Vendor name and price are required.");
       return;
     }
     const newVendor: Vendor = {
       id: `v-${Date.now()}`,
-      name: vendorForm.name.trim(),
+      name: resolvedName,
       pricePerMeter: Number(vendorForm.pricePerMeter),
       moq: Number(vendorForm.moq) || 0,
       leadTime: vendorForm.leadTime.trim(),
     };
     updateColour({ vendors: [...colour.vendors, newVendor] });
-    setVendorForm({
-      name: "",
-      pricePerMeter: "",
-      moq: "",
-      leadTime: "",
-    });
+    setVendorForm({ name: "", pricePerMeter: "", moq: "", leadTime: "" });
+    setVendorNameMode("select");
+    setCustomVendorName("");
     setAddVendorOpen(false);
     toast.success(`"${newVendor.name}" added.`);
   }
@@ -120,6 +174,7 @@ export default function ColourDetail({
       season: styleForm.season.trim(),
       department: styleForm.department.trim(),
       zone: styleForm.zone.trim(),
+      imageUrl: styleForm.imageUrl,
     };
     updateColour({ styles: [...colour.styles, newStyle] });
     setStyleForm({
@@ -128,6 +183,7 @@ export default function ColourDetail({
       season: "",
       department: "",
       zone: "",
+      imageUrl: "",
     });
     setAddStyleOpen(false);
     toast.success(`Style "${newStyle.styleName}" added.`);
@@ -136,6 +192,19 @@ export default function ColourDetail({
   function handleDeleteStyle(styleId: string) {
     updateColour({ styles: colour.styles.filter((s) => s.id !== styleId) });
     toast.success("Style removed.");
+  }
+
+  function handleStyleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result;
+      if (typeof result === "string") {
+        setStyleForm((prev) => ({ ...prev, imageUrl: result }));
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   const contrastText = getContrastText(colour.hex);
@@ -212,6 +281,24 @@ export default function ColourDetail({
             </p>
           </div>
         </div>
+      </motion.div>
+
+      {/* ── Interconnection Workflow Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.05 }}
+        className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 mb-6 flex items-center gap-3"
+      >
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+          <Layers className="w-4 h-4 text-foreground" />
+        </div>
+        <p className="text-sm text-foreground leading-snug">
+          This colour is part of{" "}
+          <strong className="font-bold">{fabric.name}</strong> — Add vendors to
+          compare pricing, then link garment styles below to complete the
+          connection.
+        </p>
       </motion.div>
 
       {/* ── Vendors ── */}
@@ -338,49 +425,58 @@ export default function ColourDetail({
                 key={style.id}
                 data-ocid={`style.item.${idx + 1}`}
                 whileHover={{ y: -2 }}
-                className="bg-white border-2 border-border hover:border-primary rounded-2xl p-5 transition-all hover:shadow-card-hover"
+                className="bg-white border-2 border-border hover:border-primary rounded-2xl overflow-hidden transition-all hover:shadow-card-hover"
               >
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
-                      {style.styleNumber}
-                    </p>
-                    <h3 className="font-display font-bold text-sm text-foreground leading-snug">
-                      {style.styleName}
-                    </h3>
+                {style.imageUrl && (
+                  <img
+                    src={style.imageUrl}
+                    alt={style.styleName}
+                    className="h-32 w-full object-cover border-b border-border"
+                  />
+                )}
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+                        {style.styleNumber}
+                      </p>
+                      <h3 className="font-display font-bold text-sm text-foreground leading-snug">
+                        {style.styleName}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      data-ocid={`style.delete_button.${idx + 1}`}
+                      onClick={() => handleDeleteStyle(style.id)}
+                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                      aria-label="Remove style"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    data-ocid={`style.delete_button.${idx + 1}`}
-                    onClick={() => handleDeleteStyle(style.id)}
-                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-                    aria-label="Remove style"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {style.season && (
-                    <Badge className="bg-primary text-primary-foreground text-[10px] font-bold rounded-md px-2 py-0">
-                      {style.season}
-                    </Badge>
-                  )}
-                  {style.department && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] font-semibold rounded-md px-2 py-0"
-                    >
-                      {style.department}
-                    </Badge>
-                  )}
-                  {style.zone && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-semibold rounded-md px-2 py-0 border"
-                    >
-                      {style.zone}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {style.season && (
+                      <Badge className="bg-primary text-primary-foreground text-[10px] font-bold rounded-md px-2 py-0">
+                        {style.season}
+                      </Badge>
+                    )}
+                    {style.department && (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-semibold rounded-md px-2 py-0"
+                      >
+                        {style.department}
+                      </Badge>
+                    )}
+                    {style.zone && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold rounded-md px-2 py-0 border"
+                      >
+                        {style.zone}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -389,7 +485,22 @@ export default function ColourDetail({
       </motion.div>
 
       {/* ── Add Vendor Dialog ── */}
-      <Dialog open={addVendorOpen} onOpenChange={setAddVendorOpen}>
+      <Dialog
+        open={addVendorOpen}
+        onOpenChange={(open) => {
+          setAddVendorOpen(open);
+          if (!open) {
+            setVendorNameMode("select");
+            setCustomVendorName("");
+            setVendorForm({
+              name: "",
+              pricePerMeter: "",
+              moq: "",
+              leadTime: "",
+            });
+          }
+        }}
+      >
         <DialogContent
           data-ocid="vendor.modal"
           className="max-w-md rounded-2xl"
@@ -404,15 +515,50 @@ export default function ColourDetail({
               <Label className="text-xs font-semibold uppercase tracking-wide">
                 Vendor Name *
               </Label>
-              <Input
-                data-ocid="vendor.input"
-                placeholder="e.g. Textil Milano SRL"
-                value={vendorForm.name}
-                onChange={(e) =>
-                  setVendorForm({ ...vendorForm, name: e.target.value })
+              <Select
+                value={
+                  vendorNameMode === "custom" ? "__custom__" : vendorForm.name
                 }
-                className="rounded-xl border-2"
-              />
+                onValueChange={(val) => {
+                  if (val === "__custom__") {
+                    setVendorNameMode("custom");
+                    setVendorForm((prev) => ({ ...prev, name: "" }));
+                  } else {
+                    setVendorNameMode("select");
+                    setVendorForm((prev) => ({ ...prev, name: val }));
+                  }
+                }}
+              >
+                <SelectTrigger
+                  data-ocid="vendor.select"
+                  className="rounded-xl border-2"
+                >
+                  <SelectValue placeholder="Select or add a vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allVendorNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem
+                    value="__custom__"
+                    className="text-primary font-semibold"
+                  >
+                    + Add new vendor
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {vendorNameMode === "custom" && (
+                <Input
+                  data-ocid="vendor.input"
+                  placeholder="e.g. Textil Milano SRL"
+                  value={customVendorName}
+                  onChange={(e) => setCustomVendorName(e.target.value)}
+                  className="rounded-xl border-2 mt-2"
+                  autoFocus
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -420,7 +566,6 @@ export default function ColourDetail({
                   Price / m (₹) *
                 </Label>
                 <Input
-                  data-ocid="vendor.input"
                   type="number"
                   step="0.01"
                   placeholder="12.50"
@@ -540,28 +685,115 @@ export default function ColourDetail({
                 <Label className="text-xs font-semibold uppercase tracking-wide">
                   Department
                 </Label>
-                <Input
-                  placeholder="Womenswear"
+                <Select
                   value={styleForm.department}
-                  onChange={(e) =>
-                    setStyleForm({ ...styleForm, department: e.target.value })
+                  onValueChange={(val) =>
+                    setStyleForm({ ...styleForm, department: val, zone: "" })
                   }
-                  className="rounded-xl border-2"
-                />
+                >
+                  <SelectTrigger
+                    data-ocid="style.department.select"
+                    className="rounded-xl border-2"
+                  >
+                    <SelectValue placeholder="Select dept." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENT_OPTIONS.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide">
                   Zone
                 </Label>
-                <Input
-                  placeholder="Premium"
-                  value={styleForm.zone}
-                  onChange={(e) =>
-                    setStyleForm({ ...styleForm, zone: e.target.value })
-                  }
-                  className="rounded-xl border-2"
-                />
+                {zoneOptions.length > 0 ? (
+                  <Select
+                    value={styleForm.zone}
+                    onValueChange={(val) =>
+                      setStyleForm({ ...styleForm, zone: val })
+                    }
+                    disabled={!styleForm.department}
+                  >
+                    <SelectTrigger
+                      data-ocid="style.zone.select"
+                      className="rounded-xl border-2"
+                    >
+                      <SelectValue placeholder="Select zone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {zoneOptions.map((zone) => (
+                        <SelectItem key={zone} value={zone}>
+                          {zone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    data-ocid="style.zone.input"
+                    placeholder={
+                      styleForm.department ? "Enter zone" : "Select dept. first"
+                    }
+                    value={styleForm.zone}
+                    onChange={(e) =>
+                      setStyleForm({ ...styleForm, zone: e.target.value })
+                    }
+                    className="rounded-xl border-2"
+                    disabled={!styleForm.department}
+                  />
+                )}
               </div>
+            </div>
+            {/* Style Image Upload */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide">
+                Style Image
+              </Label>
+              {styleForm.imageUrl ? (
+                <div className="relative inline-block">
+                  <img
+                    src={styleForm.imageUrl}
+                    alt="Style preview"
+                    className="h-20 w-auto object-cover rounded-lg border-2 border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStyleForm((prev) => ({ ...prev, imageUrl: "" }))
+                    }
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/80 transition-colors"
+                    aria-label="Remove image"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  data-ocid="style.upload_button"
+                  onClick={() => styleImageRef.current?.click()}
+                  className="w-full border-2 border-dashed border-border rounded-xl py-6 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span className="font-medium">Upload style image</span>
+                  </div>
+                </button>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                ref={styleImageRef}
+                onChange={handleStyleImageChange}
+                className="hidden"
+              />
             </div>
           </div>
           <DialogFooter className="gap-2">
