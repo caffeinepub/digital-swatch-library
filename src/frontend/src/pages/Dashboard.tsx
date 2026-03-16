@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -62,7 +61,6 @@ function gsmInRange(gsm: number, range: string): boolean {
   return true;
 }
 
-// ── Excel template download (Excel 2003 XML, no library needed) ──────────────
 function makeXmlSheet(headers: string[], rows: (string | number)[][]): string {
   const escapeXml = (v: string | number): string =>
     String(v)
@@ -196,7 +194,6 @@ function downloadExcelTemplate() {
   URL.revokeObjectURL(url);
   toast.success("Template downloaded! Open in Excel or Google Sheets.");
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Dashboard({
   fabrics,
@@ -213,6 +210,9 @@ export default function Dashboard({
   const [filterVendor, setFilterVendor] = useState("");
   const [filterColour, setFilterColour] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [stylesModalOpen, setStylesModalOpen] = useState(false);
+  const [coloursModalOpen, setColoursModalOpen] = useState(false);
+  const [vendorsModalOpen, setVendorsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -224,7 +224,6 @@ export default function Dashboard({
     width: "",
   });
 
-  // Derive unique filter options from fabrics
   const allDepartments = Array.from(
     new Set(
       fabrics.flatMap((f) =>
@@ -232,7 +231,6 @@ export default function Dashboard({
       ),
     ),
   ).sort();
-
   const allZones = Array.from(
     new Set(
       fabrics.flatMap((f) =>
@@ -240,7 +238,6 @@ export default function Dashboard({
       ),
     ),
   ).sort();
-
   const allVendors = Array.from(
     new Set(
       fabrics.flatMap((f) =>
@@ -248,14 +245,46 @@ export default function Dashboard({
       ),
     ),
   ).sort();
-
   const allCompositions = Array.from(
     new Set(fabrics.map((f) => f.composition).filter(Boolean)),
   ).sort();
-
   const allColourNames = Array.from(
     new Set(fabrics.flatMap((f) => f.colours.map((c) => c.name))),
   ).sort();
+
+  // Derived lists for modals
+  const allStylesList = fabrics.flatMap((f) =>
+    f.colours.flatMap((c) =>
+      c.styles.map((s) => ({
+        ...s,
+        fabricName: f.name,
+        fabricCode: f.code,
+        colourName: c.name,
+        fabricId: f.id,
+        colourId: c.id,
+      })),
+    ),
+  );
+  const allColoursList = fabrics.flatMap((f) =>
+    f.colours.map((c) => ({
+      ...c,
+      fabricName: f.name,
+      fabricCode: f.code,
+      fabricId: f.id,
+    })),
+  );
+  const allVendorsList = fabrics.flatMap((f) =>
+    f.colours.flatMap((c) =>
+      c.vendors.map((v) => ({
+        ...v,
+        fabricName: f.name,
+        fabricCode: f.code,
+        colourName: c.name,
+        fabricId: f.id,
+        colourId: c.id,
+      })),
+    ),
+  );
 
   const activeFilterCount = [
     filterType,
@@ -278,7 +307,6 @@ export default function Dashboard({
   }
 
   const filtered = fabrics.filter((f) => {
-    // Search across multiple attributes
     if (search) {
       const q = search.toLowerCase();
       const colourNames = f.colours.map((c) => c.name.toLowerCase());
@@ -295,46 +323,31 @@ export default function Dashboard({
         styleCodes.some((sc) => sc.includes(q));
       if (!matchSearch) return false;
     }
-
-    // Fabric type filter
     if (filterType && f.type !== filterType) return false;
-
-    // GSM range filter
     if (filterGsm && !gsmInRange(f.gsm, filterGsm)) return false;
-
-    // Composition filter
     if (filterComposition && f.composition !== filterComposition) return false;
-
-    // Department filter
     if (filterDepartment) {
       const hasDept = f.colours.some((c) =>
         c.styles.some((s) => s.department === filterDepartment),
       );
       if (!hasDept) return false;
     }
-
-    // Zone filter
     if (filterZone) {
       const hasZone = f.colours.some((c) =>
         c.styles.some((s) => s.zone === filterZone),
       );
       if (!hasZone) return false;
     }
-
-    // Vendor filter
     if (filterVendor) {
       const hasVendor = f.colours.some((c) =>
         c.vendors.some((v) => v.name === filterVendor),
       );
       if (!hasVendor) return false;
     }
-
-    // Colour filter
     if (filterColour) {
       const hasColour = f.colours.some((c) => c.name === filterColour);
       if (!hasColour) return false;
     }
-
     return true;
   });
 
@@ -367,7 +380,9 @@ export default function Dashboard({
       width: "",
     });
     setAddOpen(false);
-    toast.success(`"${newFabric.name}" added to library.`);
+    toast.success(
+      `"${newFabric.name}" added to library. Open it to add colour variants.`,
+    );
   }
 
   function handleExcelUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -383,22 +398,35 @@ export default function Dashboard({
       value: fabrics.length,
       icon: Layers,
       color: "yellow",
+      onClick: undefined,
     },
     {
       label: "Colour Variants",
       value: totalColours,
       icon: Palette,
       color: "dark",
+      onClick: () => setColoursModalOpen(true),
     },
-    { label: "Total Styles", value: totalStyles, icon: Tag, color: "yellow" },
-    { label: "Total Vendors", value: totalVendors, icon: Store, color: "dark" },
+    {
+      label: "Total Styles",
+      value: totalStyles,
+      icon: Tag,
+      color: "yellow",
+      onClick: () => setStylesModalOpen(true),
+    },
+    {
+      label: "Total Vendors",
+      value: totalVendors,
+      icon: Store,
+      color: "dark",
+      onClick: () => setVendorsModalOpen(true),
+    },
   ];
 
   const container: Variants = {
     hidden: {},
     show: { transition: { staggerChildren: 0.07 } },
   };
-
   const itemVariant: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -476,11 +504,16 @@ export default function Dashboard({
           <motion.div
             key={stat.label}
             variants={itemVariant}
+            onClick={stat.onClick}
             className={`${
               stat.color === "yellow"
                 ? "bg-primary text-primary-foreground border-2 border-foreground"
                 : "bg-foreground text-primary border-2 border-foreground"
-            } rounded-2xl p-5 flex flex-col gap-3`}
+            } rounded-2xl p-5 flex flex-col gap-3 ${
+              stat.onClick
+                ? "cursor-pointer hover:opacity-90 transition-opacity"
+                : ""
+            }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-widest opacity-70">
@@ -491,6 +524,11 @@ export default function Dashboard({
             <span className="font-display text-4xl font-extrabold leading-none">
               {stat.value}
             </span>
+            {stat.onClick && (
+              <span className="text-[10px] font-semibold opacity-60 uppercase tracking-widest">
+                Click to view →
+              </span>
+            )}
           </motion.div>
         ))}
       </motion.div>
@@ -537,7 +575,6 @@ export default function Dashboard({
           </Button>
         </div>
 
-        {/* ── Filter Panel ── */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -551,7 +588,6 @@ export default function Dashboard({
             >
               <div className="bg-white border-2 border-border rounded-2xl p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {/* Fabric Type */}
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Fabric Type
@@ -578,8 +614,6 @@ export default function Dashboard({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* GSM Range */}
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       GSM Range
@@ -603,8 +637,6 @@ export default function Dashboard({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Composition */}
                   {allCompositions.length > 0 && (
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -635,8 +667,6 @@ export default function Dashboard({
                       </Select>
                     </div>
                   )}
-
-                  {/* Department */}
                   {allDepartments.length > 0 && (
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -667,8 +697,6 @@ export default function Dashboard({
                       </Select>
                     </div>
                   )}
-
-                  {/* Zone */}
                   {allZones.length > 0 && (
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -697,8 +725,6 @@ export default function Dashboard({
                       </Select>
                     </div>
                   )}
-
-                  {/* Vendor */}
                   {allVendors.length > 0 && (
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -727,8 +753,6 @@ export default function Dashboard({
                       </Select>
                     </div>
                   )}
-
-                  {/* Colour */}
                   {allColourNames.length > 0 && (
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -758,7 +782,6 @@ export default function Dashboard({
                     </div>
                   )}
                 </div>
-
                 {activeFilterCount > 0 && (
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
@@ -837,7 +860,6 @@ export default function Dashboard({
               onClick={() => navigate({ page: "fabric", fabricId: fabric.id })}
               className="group bg-white border-2 border-border hover:border-primary rounded-2xl p-5 cursor-pointer transition-all duration-200 hover:shadow-card-hover"
             >
-              {/* Colour swatches row */}
               <div className="flex items-center gap-1.5 mb-4">
                 {fabric.colours.slice(0, 6).map((c) => (
                   <div
@@ -853,7 +875,6 @@ export default function Dashboard({
                   </span>
                 )}
               </div>
-
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-0.5">
@@ -865,7 +886,6 @@ export default function Dashboard({
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground mt-1 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
               </div>
-
               <div className="mt-3 flex items-center gap-2 flex-wrap">
                 <Badge
                   variant="secondary"
@@ -1010,8 +1030,12 @@ export default function Dashboard({
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground bg-secondary rounded-xl p-3">
+              After adding the fabric, open it to add colour variants. Each
+              colour can then have its own vendors and styles linked to it.
+            </p>
           </div>
-          <DialogFooter className="gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               data-ocid="fabric.cancel_button"
               variant="outline"
@@ -1027,7 +1051,195 @@ export default function Dashboard({
             >
               Add Fabric
             </Button>
-          </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Total Styles Modal ── */}
+      <Dialog open={stylesModalOpen} onOpenChange={setStylesModalOpen}>
+        <DialogContent
+          data-ocid="styles.modal"
+          className="max-w-2xl rounded-2xl max-h-[80vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Tag className="w-5 h-5 text-primary" />
+              All Styles ({allStylesList.length})
+            </DialogTitle>
+          </DialogHeader>
+          {allStylesList.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              No styles added yet. Open a fabric, add a colour, then add styles
+              to that colour.
+            </p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {allStylesList.map((s, idx) => (
+                <div
+                  key={`${s.id}-${idx}`}
+                  data-ocid={`styles.item.${idx + 1}`}
+                  className="bg-secondary rounded-xl p-3 flex items-center justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground truncate">
+                      {s.styleName}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {s.styleNumber} · {s.season} · {s.department} · {s.zone}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[11px] font-semibold text-foreground">
+                      {s.fabricName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {s.colourName}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStylesModalOpen(false);
+                      navigate({
+                        page: "colour",
+                        fabricId: s.fabricId,
+                        colourId: s.colourId,
+                      });
+                    }}
+                    className="text-primary hover:text-primary/70 transition-colors flex-shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Total Colours Modal ── */}
+      <Dialog open={coloursModalOpen} onOpenChange={setColoursModalOpen}>
+        <DialogContent
+          data-ocid="colours.modal"
+          className="max-w-2xl rounded-2xl max-h-[80vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Palette className="w-5 h-5 text-primary" />
+              All Colour Variants ({allColoursList.length})
+            </DialogTitle>
+          </DialogHeader>
+          {allColoursList.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              No colour variants added yet. Open a fabric and add colours to it.
+            </p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {allColoursList.map((c, idx) => (
+                <div
+                  key={`${c.id}-${idx}`}
+                  data-ocid={`colours.item.${idx + 1}`}
+                  className="bg-secondary rounded-xl p-3 flex items-center gap-3"
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg border border-border flex-shrink-0"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground">
+                      {c.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {c.pantone || "No Pantone"} · {c.hex.toUpperCase()}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[11px] font-semibold text-foreground">
+                      {c.fabricName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {c.fabricCode}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setColoursModalOpen(false);
+                      navigate({
+                        page: "colour",
+                        fabricId: c.fabricId,
+                        colourId: c.id,
+                      });
+                    }}
+                    className="text-primary hover:text-primary/70 transition-colors flex-shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Total Vendors Modal ── */}
+      <Dialog open={vendorsModalOpen} onOpenChange={setVendorsModalOpen}>
+        <DialogContent
+          data-ocid="vendors.modal"
+          className="max-w-2xl rounded-2xl max-h-[80vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
+              <Store className="w-5 h-5 text-primary" />
+              All Vendors ({allVendorsList.length} entries)
+            </DialogTitle>
+          </DialogHeader>
+          {allVendorsList.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              No vendors added yet. Open a fabric colour and add vendors to it.
+            </p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {allVendorsList.map((v, idx) => (
+                <div
+                  key={`${v.id}-${idx}`}
+                  data-ocid={`vendors.item.${idx + 1}`}
+                  className="bg-secondary rounded-xl p-3 flex items-center justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground">
+                      {v.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      ₹{v.pricePerMeter}/m · MOQ {v.moq} · {v.leadTime}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[11px] font-semibold text-foreground">
+                      {v.fabricName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {v.colourName}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVendorsModalOpen(false);
+                      navigate({
+                        page: "colour",
+                        fabricId: v.fabricId,
+                        colourId: v.colourId,
+                      });
+                    }}
+                    className="text-primary hover:text-primary/70 transition-colors flex-shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/sonner";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import Layout from "./components/Layout";
 import {
@@ -27,39 +26,38 @@ export default function App() {
   const [view, setView] = useState<View>({ page: "dashboard" });
   const [fabrics, setFabrics] = useState<Fabric[]>(sampleFabrics);
   const [isBlocked, setIsBlocked] = useState(false);
-  const queryClient = useQueryClient();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [_loginChecked, setLoginChecked] = useState(false);
 
   const navigate = (v: View) => setView(v);
 
-  // Check admin status
-  const { data: isAdmin = false } = useQuery<boolean>({
-    queryKey: ["isAdmin", identity?.getPrincipal().toString()],
-    queryFn: async () => {
-      if (!actor) return false;
-      return (actor as any).isAdmin();
-    },
-    enabled: !!actor && !isActorFetching && !!identity,
-  });
-
-  // Record login and check if blocked, then refetch admin status
+  // On actor ready: record login FIRST, then check admin status in sequence
   useEffect(() => {
     if (!actor || !identity || isActorFetching) return;
+    let cancelled = false;
     (async () => {
       try {
+        // Step 1: record the login (this may promote user to admin if first ever)
         const result = await (actor as any).recordLogin();
-        if (result?.__kind__ === "blocked") {
+        if (cancelled) return;
+        if (result && "blocked" in result) {
           setIsBlocked(true);
-        } else {
-          // Refetch admin status after login is recorded (in case this is the first login)
-          queryClient.invalidateQueries({
-            queryKey: ["isAdmin", identity.getPrincipal().toString()],
-          });
+          return;
         }
+        // Step 2: NOW check admin status (after recordLogin has run)
+        const adminStatus = await (actor as any).isAdmin();
+        if (cancelled) return;
+        setIsAdmin(!!adminStatus);
       } catch {
         // ignore
+      } finally {
+        if (!cancelled) setLoginChecked(true);
       }
     })();
-  }, [actor, identity, isActorFetching, queryClient]);
+    return () => {
+      cancelled = true;
+    };
+  }, [actor, identity, isActorFetching]);
 
   const currentFabric =
     view.page !== "dashboard" && view.page !== "admin"
