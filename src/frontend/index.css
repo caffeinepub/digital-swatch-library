@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Bricolage Grotesque ─────────────────────────────────────── */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/assets/fonts/BricolageGrotesque-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/assets/fonts/BricolageGrotesque-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/assets/fonts/BricolageGrotesque-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/assets/fonts/BricolageGrotesque-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/assets/fonts/BricolageGrotesque-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── General Sans ────────────────────────────────────────────── */
+@font-face {
+  font-family: 'General Sans';
+  src: url('/assets/fonts/GeneralSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'General Sans';
+  src: url('/assets/fonts/GeneralSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'General Sans';
+  src: url('/assets/fonts/GeneralSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'General Sans';
+  src: url('/assets/fonts/GeneralSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* White background */
+    --background: 1 0 0;
+    /* Near-black text */
+    --foreground: 0.13 0.01 250;
+
+    /* Card: pure white */
+    --card: 1 0 0;
+    --card-foreground: 0.13 0.01 250;
+
+    /* Popover: white */
+    --popover: 1 0 0;
+    --popover-foreground: 0.13 0.01 250;
+
+    /* PRIMARY = Supernova #FFCE06 → OKLCH ~0.87 0.185 91 */
+    --primary: 0.87 0.185 91;
+    /* Text on yellow = near-black */
+    --primary-foreground: 0.13 0.01 250;
+
+    /* Secondary: very light warm gray */
+    --secondary: 0.96 0.005 91;
+    --secondary-foreground: 0.13 0.01 250;
+
+    /* Muted: soft warm gray */
+    --muted: 0.96 0.005 91;
+    --muted-foreground: 0.48 0.01 250;
+
+    /* Accent = same as primary yellow */
+    --accent: 0.87 0.185 91;
+    --accent-foreground: 0.13 0.01 250;
+
+    /* Destructive */
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 1 0 0;
+
+    /* Border: light gray */
+    --border: 0.90 0.005 91;
+    --input: 0.90 0.005 91;
+    --ring: 0.87 0.185 91;
+
+    /* Charts */
+    --chart-1: 0.87 0.185 91;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+
+    /* Sidebar */
+    --sidebar: 0.13 0.01 250;
+    --sidebar-foreground: 1 0 0;
+    --sidebar-primary: 0.87 0.185 91;
+    --sidebar-primary-foreground: 0.13 0.01 250;
+    --sidebar-accent: 0.20 0.01 250;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.20 0.01 250;
+    --sidebar-ring: 0.87 0.185 91;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+  }
+}
