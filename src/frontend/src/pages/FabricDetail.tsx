@@ -41,6 +41,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { View } from "../App";
 import type { ColourVariant, Fabric } from "../data/swatchData";
+import { useEditGuard } from "../hooks/useEditGuard";
 
 interface FabricDetailProps {
   fabric: Fabric;
@@ -88,6 +89,7 @@ export default function FabricDetail({
   setFabrics,
   navigate,
 }: FabricDetailProps) {
+  const { requireEdit } = useEditGuard();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addColourOpen, setAddColourOpen] = useState(false);
@@ -292,7 +294,7 @@ export default function FabricDetail({
           <div className="flex items-center gap-2">
             <Button
               data-ocid="fabric.edit_button"
-              onClick={() => setEditOpen(true)}
+              onClick={() => requireEdit(() => setEditOpen(true))}
               className="bg-primary text-primary-foreground font-bold rounded-xl border-2 border-primary hover:bg-primary/90"
             >
               <Pencil className="w-3.5 h-3.5 mr-1.5" />
@@ -301,7 +303,7 @@ export default function FabricDetail({
             <Button
               data-ocid="fabric.delete_button"
               variant="outline"
-              onClick={() => setDeleteOpen(true)}
+              onClick={() => requireEdit(() => setDeleteOpen(true))}
               className="border-2 border-primary/30 text-primary font-bold rounded-xl hover:bg-primary/10"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -384,7 +386,7 @@ export default function FabricDetail({
           <h2 className="font-display text-xl font-bold">Colour Variants</h2>
           <Button
             data-ocid="colour.open_modal_button"
-            onClick={() => setAddColourOpen(true)}
+            onClick={() => requireEdit(() => setAddColourOpen(true))}
             className="bg-primary text-primary-foreground font-bold rounded-xl border-2 border-foreground hover:bg-primary/90"
             size="sm"
           >

@@ -67,11 +67,49 @@ actor {
   let styleEntries = Map.empty<Nat, StyleEntry>();
   let userRecords = Map.empty<Principal, UserRecord>();
   let admins = Set.empty<Principal>();
+  let editors = Set.empty<Principal>();
 
   var nextFabricId = 1;
   var nextColourVariantId = 1;
   var nextVendorId = 1;
   var nextStyleEntryId = 1;
+  var appPin : Text = "1234";
+
+  // ── Auth helpers ───────────────────────────────────────────────────────────
+  func isAuthorized(caller : Principal) : Bool {
+    admins.contains(caller) or editors.contains(caller);
+  };
+
+  // ── PIN management ─────────────────────────────────────────────────────────
+  public func verifyPin(pin : Text) : async Bool {
+    Text.equal(pin, appPin);
+  };
+
+  public shared ({ caller }) func setPin(newPin : Text) : async () {
+    if (not admins.contains(caller)) {
+      Runtime.trap("Unauthorized: admin only");
+    };
+    appPin := newPin;
+  };
+
+  // ── Editor role ────────────────────────────────────────────────────────────
+  public shared ({ caller }) func promoteToEditor(target : Principal) : async () {
+    if (not admins.contains(caller)) {
+      Runtime.trap("Unauthorized: admin only");
+    };
+    editors.add(target);
+  };
+
+  public shared ({ caller }) func demoteFromEditor(target : Principal) : async () {
+    if (not admins.contains(caller)) {
+      Runtime.trap("Unauthorized: admin only");
+    };
+    editors.remove(target);
+  };
+
+  public query ({ caller }) func isEditor() : async Bool {
+    editors.contains(caller);
+  };
 
   // ── Admin & Login Tracking ─────────────────────────────────────────────────
   public shared ({ caller }) func recordLogin() : async RecordLoginResult {
@@ -97,7 +135,6 @@ actor {
           isBlocked = false;
         };
         userRecords.add(caller, newRecord);
-        // First ever user becomes admin
         if (admins.size() == 0) {
           admins.add(caller);
         };
@@ -160,6 +197,7 @@ actor {
 
   // ── Fabric CRUD ────────────────────────────────────────────────────────────
   public shared ({ caller }) func createFabric(fabricCode : Text, fabricName : Text, fabricType : Text, composition : Text, gsm : Float, width : Float, imageUrl : ?Text) : async Nat {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
     let fabric : Fabric = {
       id = nextFabricId;
       fabricCode;
@@ -175,18 +213,19 @@ actor {
     fabric.id;
   };
 
-  public query ({ caller }) func getFabricById(id : Nat) : async Fabric {
+  public query func getFabricById(id : Nat) : async Fabric {
     switch (fabrics.get(id)) {
       case (null) { Runtime.trap("Fabric does not exist") };
       case (?fabric) { fabric };
     };
   };
 
-  public query ({ caller }) func getAllFabrics() : async [Fabric] {
+  public query func getAllFabrics() : async [Fabric] {
     fabrics.values().toArray();
   };
 
   public shared ({ caller }) func updateFabric(id : Nat, fabricCode : Text, fabricName : Text, fabricType : Text, composition : Text, gsm : Float, width : Float, imageUrl : ?Text) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
     switch (fabrics.get(id)) {
       case (null) { Runtime.trap("Tried to update non-existent fabric") };
       case (?_) {
@@ -206,6 +245,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteFabric(id : Nat) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
     if (not fabrics.containsKey(id)) {
       Runtime.trap("Tried to delete non-existent fabric");
     };
@@ -214,6 +254,7 @@ actor {
 
   // ── ColourVariant CRUD ─────────────────────────────────────────────────────
   public shared ({ caller }) func createColourVariant(fabricId : Nat, colourName : Text, pantoneCode : Text, hexValue : Text) : async Nat {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
     let colourVariant : ColourVariant = {
       id = nextColourVariantId;
       fabricId;
@@ -226,11 +267,128 @@ actor {
     colourVariant.id;
   };
 
-  public func getColourVariantsByFabric(fabricId : Nat) : async [ColourVariant] {
-    let iter = colourVariants.values();
-    let variants = iter.toArray().filter(
-      func(variant) { variant.fabricId == fabricId }
+  public query func getColourVariantsByFabric(fabricId : Nat) : async [ColourVariant] {
+    colourVariants.values().toArray().filter(
+      func(variant : ColourVariant) : Bool { variant.fabricId == fabricId }
     );
-    variants;
+  };
+
+  public query func getColourVariantById(id : Nat) : async ColourVariant {
+    switch (colourVariants.get(id)) {
+      case (null) { Runtime.trap("ColourVariant does not exist") };
+      case (?cv) { cv };
+    };
+  };
+
+  public query func getAllColourVariants() : async [ColourVariant] {
+    colourVariants.values().toArray();
+  };
+
+  public shared ({ caller }) func updateColourVariant(id : Nat, colourName : Text, pantoneCode : Text, hexValue : Text) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    switch (colourVariants.get(id)) {
+      case (null) { Runtime.trap("ColourVariant does not exist") };
+      case (?cv) {
+        colourVariants.add(id, { cv with colourName; pantoneCode; hexValue });
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteColourVariant(id : Nat) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    if (not colourVariants.containsKey(id)) {
+      Runtime.trap("ColourVariant does not exist");
+    };
+    colourVariants.remove(id);
+  };
+
+  // ── Vendor CRUD ────────────────────────────────────────────────────────────
+  public shared ({ caller }) func createVendor(colourVariantId : Nat, vendorName : Text, pricePerMeter : Float, moq : Nat, leadTimeDays : Nat) : async Nat {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    let vendor : Vendor = {
+      id = nextVendorId;
+      colourVariantId;
+      vendorName;
+      pricePerMeter;
+      moq;
+      leadTimeDays;
+    };
+    vendors.add(nextVendorId, vendor);
+    nextVendorId += 1;
+    vendor.id;
+  };
+
+  public query func getVendorsByColourVariant(colourVariantId : Nat) : async [Vendor] {
+    vendors.values().toArray().filter(
+      func(v : Vendor) : Bool { v.colourVariantId == colourVariantId }
+    );
+  };
+
+  public query func getAllVendors() : async [Vendor] {
+    vendors.values().toArray();
+  };
+
+  public shared ({ caller }) func updateVendor(id : Nat, vendorName : Text, pricePerMeter : Float, moq : Nat, leadTimeDays : Nat) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    switch (vendors.get(id)) {
+      case (null) { Runtime.trap("Vendor does not exist") };
+      case (?v) {
+        vendors.add(id, { v with vendorName; pricePerMeter; moq; leadTimeDays });
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteVendor(id : Nat) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    if (not vendors.containsKey(id)) {
+      Runtime.trap("Vendor does not exist");
+    };
+    vendors.remove(id);
+  };
+
+  // ── StyleEntry CRUD ────────────────────────────────────────────────────────
+  public shared ({ caller }) func createStyleEntry(colourVariantId : Nat, styleNumber : Text, styleName : Text, season : Text, department : Text, zone : Text, imageUrl : ?Text) : async Nat {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    let entry : StyleEntry = {
+      id = nextStyleEntryId;
+      colourVariantId;
+      styleNumber;
+      styleName;
+      season;
+      department;
+      zone;
+      imageUrl;
+    };
+    styleEntries.add(nextStyleEntryId, entry);
+    nextStyleEntryId += 1;
+    entry.id;
+  };
+
+  public query func getStyleEntriesByColourVariant(colourVariantId : Nat) : async [StyleEntry] {
+    styleEntries.values().toArray().filter(
+      func(s : StyleEntry) : Bool { s.colourVariantId == colourVariantId }
+    );
+  };
+
+  public query func getAllStyleEntries() : async [StyleEntry] {
+    styleEntries.values().toArray();
+  };
+
+  public shared ({ caller }) func updateStyleEntry(id : Nat, styleNumber : Text, styleName : Text, season : Text, department : Text, zone : Text, imageUrl : ?Text) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    switch (styleEntries.get(id)) {
+      case (null) { Runtime.trap("StyleEntry does not exist") };
+      case (?s) {
+        styleEntries.add(id, { s with styleNumber; styleName; season; department; zone; imageUrl });
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteStyleEntry(id : Nat) : async () {
+    if (not isAuthorized(caller)) Runtime.trap("Unauthorized");
+    if (not styleEntries.containsKey(id)) {
+      Runtime.trap("StyleEntry does not exist");
+    };
+    styleEntries.remove(id);
   };
 };

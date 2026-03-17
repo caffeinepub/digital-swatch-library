@@ -38,6 +38,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { View } from "../App";
 import type { ColourVariant, Fabric, Style, Vendor } from "../data/swatchData";
+import { useEditGuard } from "../hooks/useEditGuard";
 
 interface ColourDetailProps {
   fabric: Fabric;
@@ -80,6 +81,7 @@ export default function ColourDetail({
   setFabrics,
   navigate,
 }: ColourDetailProps) {
+  const { requireEdit } = useEditGuard();
   const [addVendorOpen, setAddVendorOpen] = useState(false);
   const [addStyleOpen, setAddStyleOpen] = useState(false);
 
@@ -312,7 +314,7 @@ export default function ColourDetail({
           <h2 className="font-display text-xl font-bold">Vendors</h2>
           <Button
             data-ocid="vendor.open_modal_button"
-            onClick={() => setAddVendorOpen(true)}
+            onClick={() => requireEdit(() => setAddVendorOpen(true))}
             size="sm"
             className="bg-primary text-primary-foreground font-bold rounded-xl border-2 border-foreground hover:bg-primary/90"
           >
@@ -375,7 +377,9 @@ export default function ColourDetail({
                       <button
                         type="button"
                         data-ocid={`vendor.delete_button.${idx + 1}`}
-                        onClick={() => handleDeleteVendor(vendor.id)}
+                        onClick={() =>
+                          requireEdit(() => handleDeleteVendor(vendor.id))
+                        }
                         className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         aria-label="Remove vendor"
                       >
@@ -400,7 +404,7 @@ export default function ColourDetail({
           <h2 className="font-display text-xl font-bold">Garment Styles</h2>
           <Button
             data-ocid="style.open_modal_button"
-            onClick={() => setAddStyleOpen(true)}
+            onClick={() => requireEdit(() => setAddStyleOpen(true))}
             size="sm"
             className="bg-primary text-primary-foreground font-bold rounded-xl border-2 border-foreground hover:bg-primary/90"
           >
@@ -447,7 +451,9 @@ export default function ColourDetail({
                     <button
                       type="button"
                       data-ocid={`style.delete_button.${idx + 1}`}
-                      onClick={() => handleDeleteStyle(style.id)}
+                      onClick={() =>
+                        requireEdit(() => handleDeleteStyle(style.id))
+                      }
                       className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
                       aria-label="Remove style"
                     >

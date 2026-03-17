@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import type { View } from "../App";
 import type { Fabric } from "../data/swatchData";
 import { getTotalStyles, getTotalVendors } from "../data/swatchData";
+import { useEditGuard } from "../hooks/useEditGuard";
 
 interface DashboardProps {
   fabrics: Fabric[];
@@ -201,6 +202,7 @@ export default function Dashboard({
   navigate,
 }: DashboardProps) {
   const [search, setSearch] = useState("");
+  const { requireEdit } = useEditGuard();
   const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType] = useState("");
   const [filterGsm, setFilterGsm] = useState("");
@@ -458,7 +460,7 @@ export default function Dashboard({
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             <Button
               data-ocid="fabric.open_modal_button"
-              onClick={() => setAddOpen(true)}
+              onClick={() => requireEdit(() => setAddOpen(true))}
               className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-none border-2 border-foreground rounded-xl"
             >
               <Plus className="w-4 h-4 mr-1.5" />
@@ -467,7 +469,7 @@ export default function Dashboard({
             <Button
               data-ocid="fabric.upload_button"
               variant="outline"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => requireEdit(() => fileInputRef.current?.click())}
               className="font-semibold border-2 border-foreground rounded-xl"
             >
               <Upload className="w-4 h-4 mr-1.5" />
