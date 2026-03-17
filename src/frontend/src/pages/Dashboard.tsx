@@ -217,6 +217,9 @@ export default function Dashboard({
   const [vendorsModalOpen, setVendorsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fabricImageRef = useRef<HTMLInputElement>(null);
+  const [fabricImagePreview, setFabricImagePreview] = useState<string>("");
+
   const [form, setForm] = useState({
     code: "",
     name: "",
@@ -370,6 +373,7 @@ export default function Dashboard({
       composition: form.composition.trim(),
       gsm: Number(form.gsm) || 0,
       width: Number(form.width) || 0,
+      imageUrl: fabricImagePreview || undefined,
       colours: [],
     };
     setFabrics([...fabrics, newFabric]);
@@ -381,6 +385,7 @@ export default function Dashboard({
       gsm: "",
       width: "",
     });
+    setFabricImagePreview("");
     setAddOpen(false);
     toast.success(
       `"${newFabric.name}" added to library. Open it to add colour variants.`,
@@ -1032,6 +1037,59 @@ export default function Dashboard({
                 />
               </div>
             </div>
+            {/* Fabric Image Upload */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide">
+                Fabric Image
+              </Label>
+              {fabricImagePreview ? (
+                <div className="relative rounded-xl overflow-hidden border-2 border-border">
+                  <img
+                    src={fabricImagePreview}
+                    alt="Fabric preview"
+                    className="w-full h-36 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFabricImagePreview("");
+                      if (fabricImageRef.current)
+                        fabricImageRef.current.value = "";
+                    }}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  data-ocid="fabric.upload_button"
+                  type="button"
+                  onClick={() => fabricImageRef.current?.click()}
+                  className="flex flex-col items-center justify-center w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors gap-1.5"
+                >
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Click to upload fabric image
+                  </span>
+                </button>
+              )}
+              <input
+                ref={fabricImageRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) =>
+                    setFabricImagePreview(ev.target?.result as string);
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </div>
+
             <p className="text-xs text-muted-foreground bg-secondary rounded-xl p-3">
               After adding the fabric, open it to add colour variants. Each
               colour can then have its own vendors and styles linked to it.

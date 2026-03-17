@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart2,
+  Box,
   Building2,
   CalendarDays,
   ChevronRight,
@@ -40,6 +41,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { View } from "../App";
+import FabricVisualiser from "../components/FabricVisualiser";
 import type { ColourVariant, Fabric } from "../data/swatchData";
 import { useEditGuard } from "../hooks/useEditGuard";
 
@@ -71,7 +73,6 @@ function computeInsights(fabric: Fabric) {
     }
   }
 
-  // Most recent season lexicographically (e.g. "SS 2025" > "AW 2024")
   const mostRecentSeason =
     seasons.length > 0 ? seasons.reduce((a, b) => (b > a ? b : a)) : null;
 
@@ -199,6 +200,12 @@ export default function FabricDetail({
     },
   ];
 
+  const visualiserColours = fabric.colours.map((c) => ({
+    id: c.id,
+    name: c.name,
+    hex: c.hex,
+  }));
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* ── Back ── */}
@@ -228,7 +235,6 @@ export default function FabricDetail({
               How to build a complete fabric record
             </p>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Step 1 */}
               <div className="flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
                   1
@@ -238,7 +244,6 @@ export default function FabricDetail({
                 </span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              {/* Step 2 */}
               <div className="flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-border text-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
                   2
@@ -248,7 +253,6 @@ export default function FabricDetail({
                 </span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              {/* Step 3 */}
               <div className="flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-border text-foreground text-[10px] font-extrabold flex items-center justify-center flex-shrink-0">
                   3
@@ -341,6 +345,25 @@ export default function FabricDetail({
         </div>
       </motion.div>
 
+      {/* ── 3D Fabric Visualiser ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.13 }}
+        className="bg-white border-2 border-border rounded-2xl p-6 mb-8"
+      >
+        <div className="flex items-center gap-2 mb-5">
+          <Box className="w-5 h-5 text-primary" />
+          <h2 className="font-display text-lg font-bold">
+            3D Fabric Visualiser
+          </h2>
+        </div>
+        <FabricVisualiser
+          fabricName={fabric.name}
+          colours={visualiserColours}
+        />
+      </motion.div>
+
       {/* ── Fabric Usage Insights ── */}
       <motion.div
         data-ocid="insights.section"
@@ -426,7 +449,6 @@ export default function FabricDetail({
                   }
                   className="group text-left cursor-pointer border-2 border-border hover:border-primary rounded-2xl overflow-hidden transition-all hover:shadow-card-hover w-full"
                 >
-                  {/* Swatch block */}
                   <div
                     className="h-28 w-full relative flex items-end p-4"
                     style={{ backgroundColor: colour.hex }}
@@ -438,7 +460,6 @@ export default function FabricDetail({
                       />
                     </div>
                   </div>
-                  {/* Details */}
                   <div className="bg-white p-4">
                     <h3 className="font-display font-bold text-sm text-foreground">
                       {colour.name}
