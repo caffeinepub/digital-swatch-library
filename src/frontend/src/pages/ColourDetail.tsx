@@ -28,6 +28,8 @@ import {
   ArrowLeft,
   ImageIcon,
   Layers,
+  MapPin,
+  Phone,
   Plus,
   Trash2,
   Upload,
@@ -84,12 +86,15 @@ export default function ColourDetail({
   const { requireEdit } = useEditGuard();
   const [addVendorOpen, setAddVendorOpen] = useState(false);
   const [addStyleOpen, setAddStyleOpen] = useState(false);
+  const [deptFilter, setDeptFilter] = useState<string>("All");
 
   const [vendorForm, setVendorForm] = useState({
     name: "",
     pricePerMeter: "",
     moq: "",
     leadTime: "",
+    location: "",
+    contactInfo: "",
   });
   const [vendorNameMode, setVendorNameMode] = useState<"select" | "custom">(
     "select",
@@ -119,6 +124,16 @@ export default function ColourDetail({
   const zoneOptions = styleForm.department
     ? (ZONE_OPTIONS[styleForm.department] ?? [])
     : [];
+
+  // Get unique departments from styles for filter
+  const availableDepts = Array.from(
+    new Set(colour.styles.map((s) => s.department).filter(Boolean)),
+  ).sort();
+
+  const filteredStyles =
+    deptFilter === "All"
+      ? colour.styles
+      : colour.styles.filter((s) => s.department === deptFilter);
 
   function updateColour(updated: Partial<ColourVariant>) {
     setFabrics(
@@ -150,9 +165,18 @@ export default function ColourDetail({
       pricePerMeter: Number(vendorForm.pricePerMeter),
       moq: Number(vendorForm.moq) || 0,
       leadTime: vendorForm.leadTime.trim(),
+      location: vendorForm.location.trim(),
+      contactInfo: vendorForm.contactInfo.trim(),
     };
     updateColour({ vendors: [...colour.vendors, newVendor] });
-    setVendorForm({ name: "", pricePerMeter: "", moq: "", leadTime: "" });
+    setVendorForm({
+      name: "",
+      pricePerMeter: "",
+      moq: "",
+      leadTime: "",
+      location: "",
+      contactInfo: "",
+    });
     setVendorNameMode("select");
     setCustomVendorName("");
     setAddVendorOpen(false);
@@ -341,6 +365,12 @@ export default function ColourDetail({
                     Vendor
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-widest text-foreground">
+                    Location
+                  </TableHead>
+                  <TableHead className="font-bold text-[11px] uppercase tracking-widest text-foreground">
+                    Contact
+                  </TableHead>
+                  <TableHead className="font-bold text-[11px] uppercase tracking-widest text-foreground">
                     Price / m
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-widest text-foreground">
@@ -361,6 +391,26 @@ export default function ColourDetail({
                   >
                     <TableCell className="font-semibold text-sm">
                       {vendor.name}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {vendor.location ? (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          {vendor.location}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {vendor.contactInfo ? (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3 flex-shrink-0" />
+                          {vendor.contactInfo}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center bg-primary/15 text-primary-foreground font-bold text-xs px-2 py-0.5 rounded-md">
@@ -413,6 +463,42 @@ export default function ColourDetail({
           </Button>
         </div>
 
+        {/* Department Filters */}
+        {colour.styles.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-4">
+            <button
+              type="button"
+              onClick={() => setDeptFilter("All")}
+              className={`px-3 py-1 rounded-lg border-2 text-xs font-bold transition-all ${
+                deptFilter === "All"
+                  ? "bg-foreground text-primary border-foreground"
+                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+              }`}
+            >
+              All ({colour.styles.length})
+            </button>
+            {availableDepts.map((dept) => {
+              const count = colour.styles.filter(
+                (s) => s.department === dept,
+              ).length;
+              return (
+                <button
+                  key={dept}
+                  type="button"
+                  onClick={() => setDeptFilter(dept)}
+                  className={`px-3 py-1 rounded-lg border-2 text-xs font-bold transition-all ${
+                    deptFilter === dept
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:border-primary hover:text-foreground"
+                  }`}
+                >
+                  {dept} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {colour.styles.length === 0 ? (
           <div
             data-ocid="style.empty_state"
@@ -422,9 +508,15 @@ export default function ColourDetail({
               No garment styles linked to this colour yet.
             </p>
           </div>
+        ) : filteredStyles.length === 0 ? (
+          <div className="border-2 border-dashed border-border rounded-2xl py-12 text-center">
+            <p className="text-muted-foreground font-medium">
+              No styles in the "{deptFilter}" department.
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {colour.styles.map((style, idx) => (
+            {filteredStyles.map((style, idx) => (
               <motion.div
                 key={style.id}
                 data-ocid={`style.item.${idx + 1}`}
@@ -503,6 +595,8 @@ export default function ColourDetail({
               pricePerMeter: "",
               moq: "",
               leadTime: "",
+              location: "",
+              contactInfo: "",
             });
           }
         }}
@@ -565,6 +659,32 @@ export default function ColourDetail({
                   autoFocus
                 />
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide">
+                Location
+              </Label>
+              <Input
+                placeholder="e.g. Mumbai, India"
+                value={vendorForm.location}
+                onChange={(e) =>
+                  setVendorForm({ ...vendorForm, location: e.target.value })
+                }
+                className="rounded-xl border-2"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide">
+                Contact Info
+              </Label>
+              <Input
+                placeholder="e.g. +91 98765 43210 / vendor@email.com"
+                value={vendorForm.contactInfo}
+                onChange={(e) =>
+                  setVendorForm({ ...vendorForm, contactInfo: e.target.value })
+                }
+                className="rounded-xl border-2"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

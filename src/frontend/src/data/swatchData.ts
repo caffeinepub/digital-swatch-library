@@ -4,6 +4,8 @@ export interface Vendor {
   pricePerMeter: number;
   moq: number;
   leadTime: string;
+  location?: string;
+  contactInfo?: string;
   country?: string;
 }
 
@@ -34,6 +36,7 @@ export interface Fabric {
   composition: string;
   gsm: number;
   width: number;
+  yarnCount?: string;
   imageUrl?: string;
   colours: ColourVariant[];
 }

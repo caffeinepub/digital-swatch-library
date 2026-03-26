@@ -24,24 +24,25 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart2,
-  Box,
   Building2,
   CalendarDays,
   ChevronRight,
   Hash,
+  ImageIcon,
   Layers,
   Palette,
   Pencil,
   Plus,
   Ruler,
   Trash2,
+  Upload,
   Weight,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { View } from "../App";
-import FabricVisualiser from "../components/FabricVisualiser";
 import type { ColourVariant, Fabric } from "../data/swatchData";
 import { useEditGuard } from "../hooks/useEditGuard";
 
@@ -95,6 +96,8 @@ export default function FabricDetail({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addColourOpen, setAddColourOpen] = useState(false);
 
+  const fabricImageRef = useRef<HTMLInputElement>(null);
+
   const [editForm, setEditForm] = useState({
     name: fabric.name,
     code: fabric.code,
@@ -102,6 +105,7 @@ export default function FabricDetail({
     composition: fabric.composition,
     gsm: String(fabric.gsm),
     width: String(fabric.width),
+    yarnCount: fabric.yarnCount ?? "",
   });
 
   const [colourForm, setColourForm] = useState({
@@ -130,6 +134,7 @@ export default function FabricDetail({
       composition: editForm.composition.trim(),
       gsm: Number(editForm.gsm) || fabric.gsm,
       width: Number(editForm.width) || fabric.width,
+      yarnCount: editForm.yarnCount.trim() || undefined,
     });
     setEditOpen(false);
     toast.success("Fabric updated.");
@@ -160,11 +165,30 @@ export default function FabricDetail({
     toast.success(`Colour "${newColour.name}" added.`);
   }
 
+  function handleFabricImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      updateFabric({ imageUrl: dataUrl });
+      toast.success("Fabric image updated.");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleRemoveFabricImage() {
+    updateFabric({ imageUrl: undefined });
+    if (fabricImageRef.current) fabricImageRef.current.value = "";
+    toast.success("Fabric image removed.");
+  }
+
   const infoFields = [
     { label: "Fabric Code", value: fabric.code, icon: Hash },
     { label: "Type", value: fabric.type, icon: Layers },
     { label: "GSM", value: `${fabric.gsm} g/m²`, icon: Weight },
     { label: "Width", value: `${fabric.width} cm`, icon: Ruler },
+    { label: "Yarn Count", value: fabric.yarnCount, icon: null },
     { label: "Composition", value: fabric.composition, icon: null, wide: true },
   ];
 
@@ -199,12 +223,6 @@ export default function FabricDetail({
       ocid: "insights.colours.card",
     },
   ];
-
-  const visualiserColours = fabric.colours.map((c) => ({
-    id: c.id,
-    name: c.name,
-    hex: c.hex,
-  }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -316,6 +334,79 @@ export default function FabricDetail({
         </div>
       </motion.div>
 
+      {/* ── Fabric Image ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="bg-white border-2 border-border rounded-2xl p-6 mb-8"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-lg font-bold">Fabric Image</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fabricImageRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFabricImageChange}
+            />
+            <Button
+              data-ocid="fabric.upload_button"
+              size="sm"
+              onClick={() => requireEdit(() => fabricImageRef.current?.click())}
+              className="bg-primary text-primary-foreground font-bold rounded-xl border-2 border-foreground hover:bg-primary/90"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1.5" />
+              {fabric.imageUrl ? "Change Image" : "Upload Image"}
+            </Button>
+            {fabric.imageUrl && (
+              <Button
+                data-ocid="fabric.delete_button"
+                size="sm"
+                variant="outline"
+                onClick={() => requireEdit(handleRemoveFabricImage)}
+                className="border-2 font-semibold rounded-xl hover:bg-destructive/10 hover:border-destructive hover:text-destructive"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {fabric.imageUrl ? (
+          <div
+            className="relative rounded-xl overflow-hidden border-2 border-border"
+            style={{ maxHeight: 320 }}
+          >
+            <img
+              src={fabric.imageUrl}
+              alt={fabric.name}
+              className="w-full object-cover"
+              style={{ maxHeight: 320 }}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            data-ocid="fabric.dropzone"
+            onClick={() => requireEdit(() => fabricImageRef.current?.click())}
+            className="w-full border-2 border-dashed border-border rounded-xl py-12 flex flex-col items-center gap-3 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
+          >
+            <Upload className="w-8 h-8 opacity-50" />
+            <div className="text-center">
+              <p className="text-sm font-semibold">
+                Click to upload fabric image
+              </p>
+              <p className="text-xs mt-0.5">PNG, JPG, WEBP supported</p>
+            </div>
+          </button>
+        )}
+      </motion.div>
+
       {/* ── Info Grid ── */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -343,25 +434,6 @@ export default function FabricDetail({
             </div>
           ))}
         </div>
-      </motion.div>
-
-      {/* ── 3D Fabric Visualiser ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.13 }}
-        className="bg-white border-2 border-border rounded-2xl p-6 mb-8"
-      >
-        <div className="flex items-center gap-2 mb-5">
-          <Box className="w-5 h-5 text-primary" />
-          <h2 className="font-display text-lg font-bold">
-            3D Fabric Visualiser
-          </h2>
-        </div>
-        <FabricVisualiser
-          fabricName={fabric.name}
-          colours={visualiserColours}
-        />
       </motion.div>
 
       {/* ── Fabric Usage Insights ── */}
@@ -581,6 +653,19 @@ export default function FabricDetail({
                   className="rounded-xl border-2"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide">
+                Yarn Count
+              </Label>
+              <Input
+                placeholder="e.g. 40s / 2/40s Ne"
+                value={editForm.yarnCount}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, yarnCount: e.target.value })
+                }
+                className="rounded-xl border-2"
+              />
             </div>
           </div>
           <DialogFooter className="gap-2">

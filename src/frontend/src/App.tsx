@@ -3,11 +3,7 @@ import { useState } from "react";
 import { AccessGateModal } from "./components/AccessGateModal";
 import Layout from "./components/Layout";
 import { AuthProvider } from "./contexts/AuthContext";
-import {
-  type ColourVariant,
-  type Fabric,
-  sampleFabrics,
-} from "./data/swatchData";
+import { type Fabric, sampleFabrics } from "./data/swatchData";
 import AdminPanel from "./pages/AdminPanel";
 import ColourDetail from "./pages/ColourDetail";
 import Dashboard from "./pages/Dashboard";

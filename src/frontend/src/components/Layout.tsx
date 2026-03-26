@@ -59,6 +59,7 @@ export default function Layout({ children, view, navigate }: LayoutProps) {
             >
               Library
             </button>
+
             {view.page !== "dashboard" && view.page !== "admin" && (
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-foreground/50" />

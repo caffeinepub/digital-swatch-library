@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=General+Sans:wght@200..700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Supernova yellow #FFCE06 → oklch(0.88 0.17 89) */
+    --primary: 0.88 0.17 89;
+    --primary-foreground: 0.14 0.02 260;
+
+    --background: 1 0 0;
+    --foreground: 0.14 0.02 260;
+
+    --card: 1 0 0;
+    --card-foreground: 0.14 0.02 260;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.14 0.02 260;
+
+    --secondary: 0.97 0.005 260;
+    --secondary-foreground: 0.14 0.02 260;
+
+    --muted: 0.95 0.005 260;
+    --muted-foreground: 0.5 0.02 260;
+
+    --accent: 0.95 0.01 89;
+    --accent-foreground: 0.14 0.02 260;
+
+    --destructive: 0.55 0.22 27;
+    --destructive-foreground: 1 0 0;
+
+    --border: 0.88 0.01 260;
+    --input: 0.88 0.01 260;
+    --ring: 0.88 0.17 89;
+
+    --radius: 0.5rem;
+
+    --chart-1: 0.88 0.17 89;
+    --chart-2: 0.65 0.15 180;
+    --chart-3: 0.55 0.18 27;
+    --chart-4: 0.7 0.12 300;
+    --chart-5: 0.6 0.14 130;
+
+    --sidebar-background: 0.97 0.005 260;
+    --sidebar-foreground: 0.14 0.02 260;
+    --sidebar-primary: 0.88 0.17 89;
+    --sidebar-primary-foreground: 0.14 0.02 260;
+    --sidebar-accent: 0.95 0.01 89;
+    --sidebar-accent-foreground: 0.14 0.02 260;
+    --sidebar-border: 0.88 0.01 260;
+    --sidebar-ring: 0.88 0.17 89;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
